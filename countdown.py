@@ -5,7 +5,7 @@ import event
 from math import floor
 import logging
 from PIL import Image, ImageFont, ImageDraw
-MODE = "RGBA"
+MODE = "RGBA" # ValueError: cannot reshape array of size 88192 into shape (104,212)
 
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
@@ -17,7 +17,7 @@ ch.setFormatter(formatter)
 _logger.addHandler(ch)
 
 
-def get_font(font_size=19):
+def get_font(font_size=19, font_path=None):
     """Just using the one from inkyphat site...
     want more options: https://pythonbytes.fm/episodes/show/154/code-frozen-in-carbon-on-display-for-all
     https://www.kutilek.de/sudo-font/
@@ -25,12 +25,20 @@ def get_font(font_size=19):
     :param font_size:
     :return:
     """
-    from font_fredoka_one import FredokaOne
-    font = ImageFont.truetype(FredokaOne, font_size)
-    font = ImageFont.truetype("FiraCode-Light.ttf", font_size)
-    font = ImageFont.truetype("Sudo-Thin.ttf", font_size)
-    font = ImageFont.truetype("Sudo-Regular.ttf", font_size)
-    font = ImageFont.truetype("Sudo-Medium.ttf", font_size)
+    if font_path is None:
+      from font_fredoka_one import FredokaOne
+      font = ImageFont.truetype(FredokaOne, font_size)
+    else:
+      font = ImageFont.truetype(font_path, font_size)
+#    font = ImageFont.truetype("FiraCode-Light.ttf", font_size)
+#    font = ImageFont.truetype(r'/home/pi/Source/sudo-font/sudo/Sudo-Thin.ttf', font_size)
+#    font = ImageFont.truetype(r'/home/pi/Source/sudo-font/sudo/Sudo-Medium.ttf', font_size)
+# FreeMonoBold kinda works
+#    font = ImageFont.truetype(r'/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf', font_size)
+#    font = ImageFont.truetype(r'/usr/share/fonts/truetype/freefont/FreeMonoBoldOblique.ttf', font_size)
+#    font = ImageFont.truetype("Sudo-Thin.ttf", font_size)
+#    font = ImageFont.truetype("Sudo-Regular.ttf", font_size)
+#    font = ImageFont.truetype("Sudo-Medium.ttf", font_size)
     return font
 
 
@@ -51,18 +59,20 @@ def get_events(font, max_height, max_width, event_file):
             events.append(event.Event(row[0], d))
 
     sorted_events = sorted(events, key=lambda e: e.days_til_event())
-    # Get Max events do list
+    # Get Max events to list
     max_events = 0
     events_height = 0
     spacing = 3
     for row in sorted_events:
         w, h = font.getsize(row.name)
+#        print("h {}".format(h))
         new_height = events_height + h + spacing
         if new_height > max_height:
             break
         else:
             events_height = new_height
             max_events = max_events + 1
+#    print("max_events {}".format(max_events))
     return sorted_events[0:max_events]
 
 
@@ -122,26 +132,26 @@ def draw_events(events, font, height, width):
             max_will_be = len(str(e.will_be()))
             max_width_will_be = font.getsize(str(e.will_be()))
 
-    _logger.debug(f"{width}")
-    _logger.debug(f"{max_width_name[0]} {max_width_days_til[0]} {max_width_will_be[0]}")
-    _logger.debug(f"{max_name} {max_days_til} {max_will_be}")
+#    _logger.debug(f"{width}")
+#    _logger.debug(f"{max_width_name[0]} {max_width_days_til[0]} {max_width_will_be[0]}")
+#    _logger.debug(f"{max_name} {max_days_til} {max_will_be}")
     extra_width = width - max_width_name[0] - max_width_days_til[0] - max_width_will_be[0] - width_space[0]*2
     if extra_width < 0:
-        _logger.warning(f"extra width {extra_width} is less than zero!")
-        _logger.warning(f"Choose a smaller font (current size is {font.size})")
+#        _logger.warning(f"extra width {extra_width} is less than zero!")
+#        _logger.warning(f"Choose a smaller font (current size is {font.size})")
         # TODO should truncate the name
         max_name = max_name + extra_width
         extra_width = 0
     num_spaces = floor((extra_width / width_space[0]) / 3)
-    _logger.debug(f"num_spaces: {num_spaces}")
+#    _logger.debug(f"num_spaces: {num_spaces}")
     f = '{0:<%d} {1:>%d} {2:>%d}' % (max_name + num_spaces+1, max_days_til + num_spaces, max_will_be + num_spaces)
     _logger.debug(f)
-    import textwrap
+    import textwrap 
     for e in events:
         # draw name
-        message = f.format(e.name, e.days_til_event(), e.will_be())
-#        message = f.format(textwrap.shorten(e.name, width=max_name + num_spaces, placeholder=""), e.days_til_event(), e.will_be())
-        _logger.debug(message)
+#        message = f.format(e.name, e.days_til_event(), e.will_be())
+        message = f.format(textwrap.shorten(e.name, width=max_name + num_spaces, placeholder=""), e.days_til_event(), e.will_be())
+#        _logger.debug(message)
         draw.text((x_current, y_current), message, fill=(0, 0, 0), font=font)
         name_w, name_h = font.getsize(message)
         y_current = y_current + name_h + padding + padding
@@ -165,7 +175,8 @@ class InkyPhat(object):
     HEIGHT = 104
 
 
-def main(events_csv, base_image, max_height=InkyPhat.HEIGHT, max_width=InkyPhat.WIDTH, font_size=14):
+def main(events_csv, base_image, max_height=InkyPhat.HEIGHT,
+         max_width=InkyPhat.WIDTH, font_size=14, font_path=None):
 
     width_events = 125
     width_logo = InkyPhat.WIDTH - width_events
@@ -173,7 +184,7 @@ def main(events_csv, base_image, max_height=InkyPhat.HEIGHT, max_width=InkyPhat.
 #    draw = ImageDraw.Draw(img)
 
     # get font
-    font = get_font(font_size)
+    font = get_font(font_size, font_path)
 
     # set background image
     background_image = Image.open(base_image)
@@ -195,6 +206,9 @@ def main(events_csv, base_image, max_height=InkyPhat.HEIGHT, max_width=InkyPhat.
 #    image_left.save(r'countdown_left.bmp')
 #    image_right.save(r'countdown_right.bmp')
 
+    img = img.convert("P")
+   
+    img.save(r'countdown_p.bmp')
     # draw graphic
 
     # draw legend
