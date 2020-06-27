@@ -16,7 +16,23 @@ Column 3: How old the Pi Version will be!
 
 _ran on November 9, 2019_
 
+# Usage
 
+`main.py` is bootstrapped for command-line usage
+
+  ## Scenario 1: use included resources\pi_releases.csv as events
+  ```python
+  main.py
+  ```
+  ## Scenario 2: Specify csv to use as events
+  ```python
+  main.py --events resources/example_events.csv
+  ```
+  ## Scenario 3: Specify font to use
+  ```python
+  main.py --font_path /usr/share/fonts/truetype/freefont/FreeMonoBold.ttf
+  ```
+  
 # Resources
 
 ## Fonts
